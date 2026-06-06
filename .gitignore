@@ -5,3 +5,4 @@ __pycache__/
 .DS_Store
 data/clean_data.csv
 data/engineered_data.csv
+.venv/
