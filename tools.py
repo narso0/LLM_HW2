@@ -7,17 +7,47 @@ from io import StringIO
 #agent 1: data cleaner tools
 
 def inspect_metadata(df):
-    #grab basic info like shape and null counts
-    buffer = StringIO()
-    df.info(buf=buffer)
-    return buffer.getvalue()
+    #grab basic info like shape, null counts, and cardinality
+    report = {
+        "shape": df.shape,
+        "columns": {}
+    }
+
+    for col in df.columns:
+        report["columns"][col] = {
+            "dtype": str(df[col].dtype),
+            "null_count": int(df[col].isnull().sum()),
+            "null_pct": round((df[col].isnull().mean() * 100), 2),
+            "unique_count": int(df[col].nunique()),
+            "unique_ratio": round(df[col].nunique() / len(df), 4)
+        }
+
+    return str(report)
 
 
 def get_column_stats(df, col):
     #get distribution stats or unique values for a specific column
     if col not in df.columns:
         return f"Error: Column '{col}' not found."
-    return str(df[col].describe(include='all').to_dict())
+
+    stats = {
+        "dtype": str(df[col].dtype),
+        "missing": int(df[col].isnull().sum()),
+        "unique_count": int(df[col].nunique())
+    }
+
+    if pd.api.types.is_numeric_dtype(df[col]):
+        stats.update({
+            "mean": float(df[col].mean()) if not df[col].isnull().all() else None,
+            "median": float(df[col].median()) if not df[col].isnull().all() else None,
+            "std": float(df[col].std()) if not df[col].isnull().all() else None,
+            "min": float(df[col].min()) if not df[col].isnull().all() else None,
+            "max": float(df[col].max()) if not df[col].isnull().all() else None
+        })
+    else:
+        stats["top_values"] = df[col].value_counts().head(10).to_dict()
+
+    return str(stats)
 
 
 def impute_missing(df, col, strategy='median'):
@@ -73,20 +103,24 @@ def correlation_analysis(df, target):
 def select_top_features(df, target_col, k=5):
     #drops useless columns and keeps only the top k most predictive numeric features
     numeric_df = df.select_dtypes(include=['number'])
+
     if target_col not in numeric_df.columns:
         return df, f"Error: Target '{target_col}' must be numeric."
 
-    #get absolute correlations
     correlations = numeric_df.corr()[target_col].abs().sort_values(ascending=False)
+
     top_cols = correlations.head(int(k) + 1).index.tolist()
 
-    #keep categorical columns safe so they don't get deleted before encoding
     categorical_cols = df.select_dtypes(exclude=['number']).columns.tolist()
+
     final_cols = list(set(top_cols + categorical_cols))
 
-    df = df[final_cols]
-    return df, f"Selected top {k} numeric features based on correlation with {target_col}."
+    if target_col not in final_cols:
+        final_cols.append(target_col)
 
+    df = df[final_cols]
+
+    return df, f"Selected top {k} numeric features based on correlation with {target_col}."
 
 #agent 3: model trainer tools
 
@@ -97,9 +131,12 @@ def execute_python_code(code_string):
 
     try:
         #run the code
-        exec(code_string, globals())
+        sandbox = {}
+        exec(code_string, globals(), sandbox)
+
         sys.stdout = old_stdout
         return redirected_output.getvalue(), None
+
     except Exception as e:
         sys.stdout = old_stdout
         return "", str(e)
