@@ -3,9 +3,8 @@ import pandas as pd
 import tools
 from agents import AutoMLAgent
 
-
 def run_pipeline():
-    # Load your real training data
+    #make sure the dataset is actually there
     if not os.path.exists('./data/raw_data.csv'):
         print("Error: Please place your data file at ./data/raw_data.csv before running.")
         return
@@ -13,7 +12,7 @@ def run_pipeline():
     df = pd.read_csv('./data/raw_data.csv')
     execution_logs = []
 
-    # Instantiate the Team
+    #set up the agent team
     cleaner = AutoMLAgent(
         role="The Data Cleaner",
         goal="Audit quality and resolve missing values/outliers.",
@@ -32,9 +31,7 @@ def run_pipeline():
         instructions="Generate fully executable training scripts. Evaluate stdout metrics to check if hyperparameter tuning is needed."
     )
 
-    # ---------------------------------------------
-    # PHASE 1: Data Cleaner Execution
-    # ---------------------------------------------
+    #phase 1: let the cleaner do its thing
     meta = tools.inspect_metadata(df)
     decision = cleaner.think_and_act(f"Raw Metadata:\n{meta}")
     execution_logs.append(f"Agent 1 (Cleaner): {decision['thought_process']}")
@@ -45,9 +42,7 @@ def run_pipeline():
     cleaner_summary = decision['handoff_summary']
     df.to_csv("./data/clean_data.csv", index=False)
 
-    # ---------------------------------------------
-    # PHASE 2: Feature Engineer Execution
-    # ---------------------------------------------
+    #phase 2: feature engineering
     context_2 = f"Cleaner Summary: {cleaner_summary}\nColumns available: {list(df.columns)}"
     decision_2 = engineer.think_and_act(context_2)
     execution_logs.append(f"Agent 2 (Engineer): {decision_2['thought_process']}")
@@ -58,9 +53,7 @@ def run_pipeline():
     engineer_summary = decision_2['handoff_summary']
     df.to_csv("./data/engineered_data.csv", index=False)
 
-    # ---------------------------------------------
-    # PHASE 3: Model Trainer Loop (Feedback Iterations)
-    # ---------------------------------------------
+    #phase 3: train, check metrics, and retry
     trainer_context = f"Engineered Summary: {engineer_summary}\nStatus: Run initial baseline setup."
 
     for iteration in range(2):
@@ -74,27 +67,23 @@ def run_pipeline():
             break
 
     final_metrics = decision_3['handoff_summary']
-
-    # ---------------------------------------------
-    # DELIVERABLE GENERATION
-    # ---------------------------------------------
+    #save the final report
     print("\n--- AGENT TEAM PROCESS LOGS ---")
     for log in execution_logs:
         print(log)
 
-    report_md = f"""# Autonomous Multi-Agent AutoML System Report
-## Execution Summary
+    report_md = f"""#Autonomous Multi-Agent AutoML System Report
+##Execution Summary
 * **Data Cleaner Summary:** {cleaner_summary}
 * **Feature Engineer Summary:** {engineer_summary}
 * **Final Model Trainer Output:** {final_metrics}
 
-## Agent Thought Process Logs
+##Agent Thought Process Logs
 {chr(10).join(['* ' + log for log in execution_logs])}
 """
     with open("./Final_Report.md", "w") as f:
         f.write(report_md)
     print("\nSuccessfully generated deliverable report: ./Final_Report.md")
-
 
 if __name__ == "__main__":
     run_pipeline()

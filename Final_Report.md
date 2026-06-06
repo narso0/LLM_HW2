@@ -1,11 +1,11 @@
-# Autonomous Multi-Agent AutoML System Report
-## Execution Summary
-* **Data Cleaner Summary:** I dropped unique identifier columns and imputed missing age entries with the median value.
-* **Feature Engineer Summary:** I engineered a custom income-per-age interaction feature and applied categorical processing.
-* **Final Model Trainer Output:** Final model training cycle complete. Achieved optimal XGBoost metrics.
+#Autonomous Multi-Agent AutoML System Report
+##Execution Summary
+* **Data Cleaner Summary:** dropped unique identifiers and fixed missing age entries with median values.
+* **Feature Engineer Summary:** created an income-per-age feature and handled categorical encoding.
+* **Final Model Trainer Output:** training done. hit our target xgboost metrics.
 
-## Agent Thought Process Logs
-* Agent 1 (Cleaner): Inspected metadata. Found missing values in 'age'. I will impute using the median.
-* Agent 2 (Engineer): Analyzing features. I will create a ratio feature between income and age.
-* Agent 3 (Trainer) [Iter 1]: Baseline model completed with 0.71 F1. I will adjust the hyperparameters to optimize performance.
-* Agent 3 (Trainer) [Iter 2]: The updated hyperparameters hit 0.80 F1, which meets our performance standards.
+##Agent Thought Process Logs
+* Agent 1 (Cleaner): found some missing values in the age column. going to impute them using the median.
+* Agent 2 (Engineer): looking at features. making a ratio between income and age makes sense here.
+* Agent 3 (Trainer) [Iter 1]: baseline f1 is 0.71. need to tweak hyperparameters to get a better score.
+* Agent 3 (Trainer) [Iter 2]: hit 0.80 f1 after tuning, which is good enough to stop.

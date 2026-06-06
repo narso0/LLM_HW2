@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI()
 
-
 class AutoMLAgent:
     def __init__(self, role, goal, instructions):
         self.role = role
@@ -13,7 +12,7 @@ class AutoMLAgent:
         self.instructions = instructions
 
     def think_and_act(self, state_context):
-        """Sends the current data context to the agent and gets a structured decision."""
+        #send context to the llm and force it to reply in json format
         prompt = f"""
         ROLE: {self.role}
         GOAL: {self.goal}
@@ -40,36 +39,36 @@ class AutoMLAgent:
             )
             return json.loads(response.choices[0].message.content)
         except Exception:
-            # Fallback mock engine so you can test your pipeline for free with a $0 balance!
+            #fallback so we can test locally without paying for api calls
             return self._get_offline_mock_response(state_context)
 
     def _get_offline_mock_response(self, context):
-        """Allows testing the pipeline execution flow without paying API fees."""
+        #mock responses just to keep the pipeline moving during testing
         if "Cleaner" in self.role:
             return {
-                "thought_process": "Inspected metadata. Found missing values in 'age'. I will impute using the median.",
+                "thought_process": "found some missing values in the age column. going to impute them using the median.",
                 "action": "impute_missing",
                 "parameters": {"col": "age", "strategy": "median"},
-                "handoff_summary": "I dropped unique identifier columns and imputed missing age entries with the median value."
+                "handoff_summary": "dropped unique identifiers and fixed missing age entries with median values."
             }
         elif "Feature" in self.role:
             return {
-                "thought_process": "Analyzing features. I will create a ratio feature between income and age.",
+                "thought_process": "looking at features. making a ratio between income and age makes sense here.",
                 "action": "create_interaction",
                 "parameters": {"expression": "income / age"},
-                "handoff_summary": "I engineered a custom income-per-age interaction feature and applied categorical processing."
+                "handoff_summary": "created an income-per-age feature and handled categorical encoding."
             }
         else:
             if "baseline" in context.lower():
                 return {
-                    "thought_process": "Baseline model completed with 0.71 F1. I will adjust the hyperparameters to optimize performance.",
+                    "thought_process": "baseline f1 is 0.71. need to tweak hyperparameters to get a better score.",
                     "action": "execute_python_code",
                     "parameters": {"code_string": "print('Accuracy: 0.82\\nRecall: 0.78\\nF1: 0.80')"},
                     "handoff_summary": ""
                 }
             return {
-                "thought_process": "The updated hyperparameters hit 0.80 F1, which meets our performance standards.",
+                "thought_process": "hit 0.80 f1 after tuning, which is good enough to stop.",
                 "action": "terminate",
                 "parameters": {},
-                "handoff_summary": "Final model training cycle complete. Achieved optimal XGBoost metrics."
+                "handoff_summary": "training done. hit our target xgboost metrics."
             }
